@@ -1,0 +1,71 @@
+---
+title: "Final Project"
+author: "Youngeun Kuu"
+date: "2023-12-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Data
+shootings_raw <- read.csv("shootings.csv")
+gunlaw <- read.csv("Gun law.csv")
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r}
+# Since original data has some unnecessary data, I'll subset the data
+data <- subset(shootings_raw, select = c(State, 
+                                         NumberofVictimsInjured, 
+                                         NumberofVictimFatalities, 
+                                         SchoolRelated, 
+                                         RelationshiptoIncidentLocation, 
+                                         PlaceType, 
+                                         FateofShooteratthescene, 
+                                         HistoryofMentalIllnessGeneral))
+# By grouping by State, it's easy to analyze
+shootings_by_state <- data %>%
+  group_by(State) %>%
+  summarize(TotalMassShootings = n(),
+            TotalVictimsInjured = sum(NumberofVictimsInjured),
+            TotalVictimsFatalities = sum(NumberofVictimFatalities))
+
+# Merge with Gun Control Law dataset
+shootings <- merge(shootings_by_state, gunlaw, by = "State", all.x = TRUE) %>%
+             na.omit()
+```
+
+```{r}
+# Regression
+model <- lm(cbind(TotalMassShootings, TotalVictimsInjured, TotalVictimsFatalities) ~ GunLawStrength, data = shootings)
+summary(model)
+```
+
+```{r}
+# Graphs
+ggplot(shootings, aes(x = GunLawStrength)) +
+  geom_point(aes(y = TotalMassShootings), color = "blue") +
+  geom_smooth(aes(y = TotalMassShootings), method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Scatterplot and Regression Line for Total Mass Shootings",
+       x = "Strength of Gun Control Law",
+       y = "Total Mass Shootings") 
+
+ggplot(shootings, aes(x = GunLawStrength)) +  
+  geom_point(aes(y = TotalVictimsInjured), color = "red") +
+  geom_smooth(aes(y = TotalVictimsInjured), method = "lm", se = FALSE, color = "red") +
+  labs(title = "Scatterplot and Regression Line for Total Victims Injured",
+       x = "Strength of Gun Control Law",
+       y = "Total Victims Injured") 
+
+ggplot(shootings, aes(x = GunLawStrength)) +  
+  geom_point(aes(y = TotalVictimsFatalities), color = "green") +
+  geom_smooth(aes(y = TotalVictimsFatalities), method = "lm", se = FALSE, color = "green") +
+  labs(title = "Scatterplot and Regression Line for Total Victims Fatalities",
+       x = "Strength of Gun Control Law",
+       y = "Total Victims Fatalities")
+```
